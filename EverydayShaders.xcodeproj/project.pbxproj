@@ -32,8 +32,8 @@
 		FA761F072D12BD4900BE4303 = {
 			isa = PBXGroup;
 			children = (
-				FA761F122D12BD4900BE4303 /* EverydayShaders */,
 				FA761F112D12BD4900BE4303 /* Products */,
+				FA761F122D12BD4900BE4303 /* EverydayShaders */,
 			);
 			sourceTree = "<group>";
 		};
