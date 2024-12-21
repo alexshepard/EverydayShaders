@@ -15,6 +15,6 @@ vertex float4 vertex_main(
     return float4(vertices[vertex_id], 0.0, 1.0);
 }
 
-fragment float4 fragment_main() {
+fragment float4 fragment_main( ) {
     return float4(0.1, 0.2, 0.6, 1.0);
 }
