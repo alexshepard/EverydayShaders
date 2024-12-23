@@ -16,6 +16,8 @@ class Renderer: NSObject {
     var indexBuf: MTLBuffer!
     var pipeState: MTLRenderPipelineState!
     var vertexDesc: MTLVertexDescriptor!
+
+    var timer: Float = 0.0
     
     init(metalView: MTKView) {
         guard
@@ -36,10 +38,6 @@ class Renderer: NSObject {
         vertexDesc.attributes[0].offset = MemoryLayout.offset(of: \Vertex.position)!
         vertexDesc.attributes[0].bufferIndex = 30
         
-        vertexDesc.attributes[1].format = .float3
-        vertexDesc.attributes[1].offset = MemoryLayout.offset(of: \Vertex.color)!
-        vertexDesc.attributes[1].bufferIndex = 30
-
         let lib = device.makeDefaultLibrary()
         Self.lib = lib
         let vertexFn = lib?.makeFunction(name: "vertex_main")
@@ -62,17 +60,17 @@ class Renderer: NSObject {
         )
         
         let vertices: [Vertex] = [
-            Vertex(position: simd_float2(-0.5, -0.5), color: simd_float3(1.0, 0.0, 0.0)),
-            Vertex(position: simd_float2( 0.5, -0.5), color: simd_float3(0.0, 1.0, 0.0)),
-            Vertex(position: simd_float2( 0.5,  0.5), color: simd_float3(0.0, 0.0, 1.0)),
-            Vertex(position: simd_float2(-0.5,  0.5), color: simd_float3(1.0, 0.0, 1.0)),
+            Vertex(position: simd_float2(-0.5, -0.5)),
+            Vertex(position: simd_float2( 0.5, -0.5)),
+            Vertex(position: simd_float2( 0.5,  0.5)),
+            Vertex(position: simd_float2(-0.5,  0.5)),
         ]
         self.vertexBuf = device.makeBuffer(
             bytes: vertices,
             length: vertices.count * MemoryLayout<Vertex>.stride,
             options: .storageModeShared
         )
-        
+                
         do {
             pipeState = try device.makeRenderPipelineState(descriptor: pipeDesc)
         } catch {
@@ -96,8 +94,25 @@ extension Renderer: MTKViewDelegate {
             let renderEnc = cmdBuf.makeRenderCommandEncoder(descriptor: desc)
         else { return }
         
+        
         renderEnc.setRenderPipelineState(self.pipeState)
         renderEnc.setVertexBuffer(self.vertexBuf, offset: 0, index: 30)
+        
+        var uniforms = FragmentUniforms(
+            timer: timer
+        )
+        let uniformsBuf = Self.device.makeBuffer(
+            bytes: &uniforms,
+            length: MemoryLayout<FragmentUniforms>.stride,
+            options: .storageModeShared
+        )
+            
+        renderEnc.setFragmentBuffer(
+            uniformsBuf,
+            offset: 0,
+            index: 13
+        )
+        
         renderEnc.drawIndexedPrimitives(
             type: .triangle,
             indexCount: 6,
@@ -110,5 +125,7 @@ extension Renderer: MTKViewDelegate {
         guard let drawable = view.currentDrawable else { return }
         cmdBuf.present(drawable)
         cmdBuf.commit()
+        
+        timer += 0.05
     }
 }

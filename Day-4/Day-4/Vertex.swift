@@ -9,5 +9,8 @@ import simd
 
 struct Vertex {
     var position: simd_float2
-    var color: simd_float3
+}
+
+struct FragmentUniforms {
+    var timer: Float
 }
