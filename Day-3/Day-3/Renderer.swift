@@ -13,6 +13,7 @@ class Renderer: NSObject {
     static var lib: MTLLibrary!
     
     var vertexBuf: MTLBuffer!
+    var indexBuf: MTLBuffer!
     var pipeState: MTLRenderPipelineState!
     var vertexDescriptor: MTLVertexDescriptor!
     
@@ -51,14 +52,22 @@ class Renderer: NSObject {
         pipeDesc.vertexDescriptor = vertexDescriptor
         pipeDesc.colorAttachments[0].pixelFormat = metalView.colorPixelFormat
         
+        let indices: [ushort] = [
+            0, 1, 2,
+            0, 2, 3,
+        ]
         let vertices: [Vertex] = [
             Vertex(position: simd_float2(-0.5, -0.5), color: simd_float3(1.0, 0.0, 0.0)),
             Vertex(position: simd_float2( 0.5, -0.5), color: simd_float3(0.0, 1.0, 0.0)),
             Vertex(position: simd_float2( 0.5,  0.5), color: simd_float3(0.0, 0.0, 1.0)),
-            Vertex(position: simd_float2(-0.5, -0.5), color: simd_float3(1.0, 0.0, 0.0)),
-            Vertex(position: simd_float2( 0.5,  0.5), color: simd_float3(0.0, 0.0, 1.0)),
             Vertex(position: simd_float2(-0.5,  0.5), color: simd_float3(1.0, 0.0, 1.0)),
         ]
+        
+        self.indexBuf = device.makeBuffer(
+            bytes: indices,
+            length: indices.count * MemoryLayout<ushort>.stride,
+            options: .storageModeShared
+        )
         
         self.vertexBuf = device.makeBuffer(
             bytes: vertices,
@@ -100,10 +109,12 @@ extension Renderer: MTKViewDelegate {
             offset: 0,
             index: 30
         )
-        renderEnc.drawPrimitives(
+        renderEnc.drawIndexedPrimitives(
             type: .triangle,
-            vertexStart: 0,
-            vertexCount: 6
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: indexBuf,
+            indexBufferOffset: 0
         )
         renderEnc.endEncoding()
         
