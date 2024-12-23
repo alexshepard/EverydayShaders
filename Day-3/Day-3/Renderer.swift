@@ -52,9 +52,12 @@ class Renderer: NSObject {
         pipeDesc.colorAttachments[0].pixelFormat = metalView.colorPixelFormat
         
         let vertices: [Vertex] = [
-            Vertex(position: simd_float2(-0.5, -0.5), color: simd_float3(0.8, 0.1, 0.1)),
-            Vertex(position: simd_float2( 0.5, -0.5), color: simd_float3(0.1, 0.8, 0.1)),
-            Vertex(position: simd_float2( 0.0,  0.5), color: simd_float3(0.1, 0.1, 0.8)),
+            Vertex(position: simd_float2(-0.5, -0.5), color: simd_float3(1.0, 0.0, 0.0)),
+            Vertex(position: simd_float2( 0.5, -0.5), color: simd_float3(0.0, 1.0, 0.0)),
+            Vertex(position: simd_float2( 0.5,  0.5), color: simd_float3(0.0, 0.0, 1.0)),
+            Vertex(position: simd_float2(-0.5, -0.5), color: simd_float3(1.0, 0.0, 0.0)),
+            Vertex(position: simd_float2( 0.5,  0.5), color: simd_float3(0.0, 0.0, 1.0)),
+            Vertex(position: simd_float2(-0.5,  0.5), color: simd_float3(1.0, 0.0, 1.0)),
         ]
         
         self.vertexBuf = device.makeBuffer(
@@ -100,7 +103,7 @@ extension Renderer: MTKViewDelegate {
         renderEnc.drawPrimitives(
             type: .triangle,
             vertexStart: 0,
-            vertexCount: 3
+            vertexCount: 6
         )
         renderEnc.endEncoding()
         
