@@ -16,8 +16,11 @@ class Renderer: NSObject {
     var indexBuf: MTLBuffer!
     var pipeState: MTLRenderPipelineState!
     var vertexDesc: MTLVertexDescriptor!
-
+    var fragUniformsBuf: MTLBuffer!
+    
     var timer: Float = 0.0
+    let gpuLock = DispatchSemaphore(value: 1)
+
     
     init(metalView: MTKView) {
         guard
@@ -70,6 +73,16 @@ class Renderer: NSObject {
             length: vertices.count * MemoryLayout<Vertex>.stride,
             options: .storageModeShared
         )
+        
+        var initialUniforms = FragmentUniforms(
+            timer: timer
+        )
+
+        self.fragUniformsBuf = device.makeBuffer(
+            bytes: &initialUniforms,
+            length: MemoryLayout<FragmentUniforms>.stride,
+            options: .storageModeShared
+        )
                 
         do {
             pipeState = try device.makeRenderPipelineState(descriptor: pipeDesc)
@@ -88,6 +101,8 @@ extension Renderer: MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) { }
         
     func draw(in view: MTKView) {
+        gpuLock.wait()
+        
         guard
             let cmdBuf = Self.cmdQ.makeCommandBuffer(),
             let desc = view.currentRenderPassDescriptor,
@@ -98,17 +113,15 @@ extension Renderer: MTKViewDelegate {
         renderEnc.setRenderPipelineState(self.pipeState)
         renderEnc.setVertexBuffer(self.vertexBuf, offset: 0, index: 30)
         
-        var uniforms = FragmentUniforms(
-            timer: timer
+        let ptr = fragUniformsBuf.contents().bindMemory(
+            to: FragmentUniforms.self,
+            capacity: 1
         )
-        let uniformsBuf = Self.device.makeBuffer(
-            bytes: &uniforms,
-            length: MemoryLayout<FragmentUniforms>.stride,
-            options: .storageModeShared
-        )
+        ptr.pointee.timer = timer
+        timer += 0.05
             
         renderEnc.setFragmentBuffer(
-            uniformsBuf,
+            fragUniformsBuf,
             offset: 0,
             index: 13
         )
@@ -124,8 +137,11 @@ extension Renderer: MTKViewDelegate {
         
         guard let drawable = view.currentDrawable else { return }
         cmdBuf.present(drawable)
+        cmdBuf.addCompletedHandler { _ in
+            self.gpuLock.signal()
+        }
+
         cmdBuf.commit()
         
-        timer += 0.05
     }
 }
