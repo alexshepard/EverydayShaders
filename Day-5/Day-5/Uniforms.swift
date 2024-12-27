@@ -5,8 +5,8 @@
 //  Created by Alex Shepard on 12/26/24.
 //
 
-import Foundation
+import simd
 
-struct FragmentUniforms {
-    var timer: Float
+struct FragUniforms {
+    var resolution: simd_float2
 }

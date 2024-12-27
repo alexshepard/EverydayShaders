@@ -17,8 +17,9 @@ struct VertexOut {
 };
 
 struct FragUniforms {
-    float timer;
+    float2 resolution;
 };
+
 
 vertex VertexOut vertex_main(Vertex in [[ stage_in ]]) {
     VertexOut out;
@@ -26,10 +27,8 @@ vertex VertexOut vertex_main(Vertex in [[ stage_in ]]) {
     return out;
 }
 
-fragment float4 fragment_main(VertexOut in [[ stage_in ]], constant FragUniforms &uniforms [[ buffer(13) ]])
-{
-    float blue = (sin(uniforms.timer) + 1.0) * 0.5;
-    return float4(0.2, 0.2, blue, 1.0);
+fragment float4 fragment_main(VertexOut in [[ stage_in ]], constant FragUniforms &uniforms [[ buffer(13) ]]) {
+    return float4(in.position.x / uniforms.resolution.x, in.position.y / uniforms.resolution.y, 0.0, 1.0);
 }
 
 

@@ -15,13 +15,10 @@ class Renderer: NSObject {
     var vertexBuf: MTLBuffer!
     var indexBuf: MTLBuffer!
     var fragUniformsBuf: MTLBuffer!
-    
+
     var pipeState: MTLRenderPipelineState!
     var vertexDesc: MTLVertexDescriptor!
-    
-    var timer: Float = 0.0
-    let gpuLock = DispatchSemaphore(value: 1)
-    
+        
     init(metalView: MTKView) {
         guard
             let device = MTLCreateSystemDefaultDevice(),
@@ -73,13 +70,17 @@ class Renderer: NSObject {
             options: .storageModeShared
         )
         
-        var initialFragUniforms = FragmentUniforms(timer: timer)
+        var fragUniforms = FragUniforms(resolution: simd_float2(
+            Float(metalView.frame.size.width),
+            Float(metalView.frame.size.height)
+        ))
+                                        
         self.fragUniformsBuf = device.makeBuffer(
-            bytes: &initialFragUniforms,
-            length: MemoryLayout<FragmentUniforms>.stride,
+            bytes: &fragUniforms,
+            length: MemoryLayout<FragUniforms>.stride,
             options: .storageModeShared
         )
-            
+                            
         do {
             pipeState = try device.makeRenderPipelineState(descriptor: pipeDesc)
         } catch {
@@ -94,10 +95,21 @@ class Renderer: NSObject {
 }
 
 extension Renderer: MTKViewDelegate {
-    func mtkView(_ view: MTKView, drawableSizeWillChange newSize: CGSize) { }
+    func mtkView(_ view: MTKView, drawableSizeWillChange newSize: CGSize) {
+        // remake the buffer on resize
+        var fragUniforms = FragUniforms(resolution: simd_float2(
+            Float(newSize.width),
+            Float(newSize.height)
+        ))
+                                        
+        self.fragUniformsBuf = Self.device.makeBuffer(
+            bytes: &fragUniforms,
+            length: MemoryLayout<FragUniforms>.stride,
+            options: .storageModeShared
+        )
+    }
     
     func draw(in view: MTKView) {
-        gpuLock.wait()
         
         guard
             let cmdBuf = Self.cmdQ.makeCommandBuffer(),
@@ -108,19 +120,12 @@ extension Renderer: MTKViewDelegate {
         renderEnc.setRenderPipelineState(self.pipeState)
         renderEnc.setVertexBuffer(self.vertexBuf, offset: 0, index: 30)
         
-        let ptr = fragUniformsBuf.contents().bindMemory(
-            to: FragmentUniforms.self,
-            capacity: 1
-        )
-        ptr.pointee.timer = self.timer
-        self.timer += 0.05
-        
         renderEnc.setFragmentBuffer(
             fragUniformsBuf,
             offset: 0,
             index: 13
         )
-        
+
         renderEnc.drawIndexedPrimitives(
             type: .triangle,
             indexCount: 6,
@@ -132,9 +137,6 @@ extension Renderer: MTKViewDelegate {
         
         guard let drawable = view.currentDrawable else { return }
         cmdBuf.present(drawable)
-        cmdBuf.addCompletedHandler { _ in
-            self.gpuLock.signal()
-        }
         cmdBuf.commit()
     }
 }
